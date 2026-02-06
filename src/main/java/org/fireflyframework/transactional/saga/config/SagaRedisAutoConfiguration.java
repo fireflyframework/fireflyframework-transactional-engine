@@ -31,6 +31,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
@@ -72,11 +73,12 @@ public class SagaRedisAutoConfiguration {
         log.info("Configuring Redis connection factory for saga persistence: {}:{}",
                 redis.getHost(), redis.getPort());
 
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(redis.getHost(), redis.getPort());
-        factory.setDatabase(redis.getDatabase());
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration(redis.getHost(), redis.getPort());
+        redisConfig.setDatabase(redis.getDatabase());
         if (redis.getPassword() != null) {
-            factory.setPassword(redis.getPassword());
+            redisConfig.setPassword(redis.getPassword());
         }
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(redisConfig);
         factory.setValidateConnection(true);
         factory.afterPropertiesSet(); // Initialize the connection factory
 
