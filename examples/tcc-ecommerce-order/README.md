@@ -65,7 +65,7 @@ If all reservations succeed, the system confirms all operations. If any reservat
 
 ### Prerequisites
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Redis (optional, for persistence)
 
