@@ -1,4 +1,4 @@
-com.firefly.transactional.saga.config.SagaPersistenceAutoConfiguration
-com.firefly.transactional.saga.config.SagaRedisAutoConfiguration
-com.firefly.transactional.saga.config.SagaCompositionAutoConfiguration
-com.firefly.transactional.tcc.config.TccCompositionAutoConfiguration
+org.fireflyframework.transactional.saga.config.SagaPersistenceAutoConfiguration
+org.fireflyframework.transactional.saga.config.SagaRedisAutoConfiguration
+org.fireflyframework.transactional.saga.config.SagaCompositionAutoConfiguration
+org.fireflyframework.transactional.tcc.config.TccCompositionAutoConfiguration

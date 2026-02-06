@@ -21,7 +21,7 @@ A high-performance, reactive distributed transaction engine for Spring Boot 3 ap
 
 ```xml
 <dependency>
-    <groupId>com.firefly</groupId>
+    <groupId>org.fireflyframework</groupId>
     <artifactId>lib-transactional-engine</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
@@ -383,4 +383,4 @@ Licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for deta
 
 ---
 
-**Firefly Software Solutions Inc** - Building the future of banking technology
+**Firefly Software Solutions Inc** - Enterprise-grade reactive framework for mission-critical systems

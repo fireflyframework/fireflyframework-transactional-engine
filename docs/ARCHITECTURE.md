@@ -31,7 +31,7 @@ The Firefly Transactional Engine is built on a modular, reactive architecture th
 ## Package Structure
 
 ```
-com.firefly.transactional/
+org.fireflyframework.transactional/
 ├── saga/                          # SAGA pattern implementation
 │   ├── annotations/               # @Saga, @SagaStep annotations
 │   ├── core/                      # SagaContext, SagaResult

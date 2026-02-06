@@ -1,1 +1,1 @@
-com.firefly.transactional.shared.validation.SagaValidationProcessor
+org.fireflyframework.transactional.saga.validation.SagaValidationProcessor

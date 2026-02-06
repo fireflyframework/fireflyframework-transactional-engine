@@ -6,17 +6,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.firefly</groupId>
-        <artifactId>lib-parent-pom</artifactId>
+        <groupId>org.fireflyframework</groupId>
+        <artifactId>fireflyframework-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
-    <artifactId>lib-transactional-engine</artifactId>
+    <artifactId>fireflyframework-transactional-engine</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Firefly Transactional Engine</name>
+    <name>Firefly Framework - Transactional Engine</name>
     <description>Core SAGA engine for Spring Boot 3</description>
 
     <dependencies>

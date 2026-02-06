@@ -1,0 +1,82 @@
+/*
+ * Copyright 2024-2026 Firefly Software Solutions Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+package org.fireflyframework.transactional.saga.engine;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.fireflyframework.transactional.saga.core.SagaContext;
+import org.fireflyframework.transactional.saga.core.SagaResult;
+import org.fireflyframework.transactional.saga.registry.SagaBuilder;
+import org.fireflyframework.transactional.saga.registry.SagaDefinition;
+import org.fireflyframework.transactional.saga.registry.SagaRegistry;
+import org.fireflyframework.transactional.saga.engine.step.StepHandler;
+import org.fireflyframework.transactional.saga.observability.SagaEvents;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+class SagaEngineTopologyPrettyLoggingTest {
+
+    private SagaEngine newEngine(SagaEvents events) {
+        SagaRegistry dummy = mock(SagaRegistry.class);
+        return new SagaEngine(dummy, events);
+    }
+
+    @Test
+    void logsPrettyTopologyMultiline() {
+        // Given a saga with two layers: L1(a,b) -> L2(c)
+        SagaDefinition def = SagaBuilder.saga("TopoPretty").
+                step("a").handler((StepHandler<Void, String>) (input, ctx) -> Mono.just("ra")).add().
+                step("b").handler((StepHandler<Void, String>) (input, ctx) -> Mono.just("rb")).add().
+                step("c").dependsOn("a", "b").handler((StepHandler<Void, String>) (input, ctx) -> Mono.just("rc")).add().
+                build();
+
+        Logger logger = (Logger) LoggerFactory.getLogger(SagaEngine.class);
+        Level old = logger.getLevel();
+        logger.setLevel(Level.INFO);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            SagaEngine engine = newEngine(new NoopEvents());
+            SagaContext ctx = new SagaContext("corr-pretty");
+            SagaResult result = engine.execute(def, StepInputs.builder().build(), ctx).block();
+            assertNotNull(result);
+
+            boolean foundPretty = appender.list.stream()
+                    .map(ILoggingEvent::getFormattedMessage)
+                    .anyMatch(msg -> msg.contains("\"saga_topology\"")
+                            && msg.contains("\"layers_pretty\"")
+                            && msg.contains("TopoPretty")
+                            && msg.contains("L1 [a, b]")
+                            && msg.contains("-> L2 [c]"));
+            assertTrue(foundPretty, "Expected pretty topology log to include multi-line representation with arrows");
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(old);
+        }
+    }
+
+    static class NoopEvents implements SagaEvents {}
+}
