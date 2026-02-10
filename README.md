@@ -1,5 +1,7 @@
 # Firefly Transactional Engine
 
+[![CI](https://github.com/fireflyframework/fireflyframework-transactional-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/fireflyframework/fireflyframework-transactional-engine/actions/workflows/ci.yml)
+
 A high-performance, reactive distributed transaction engine for Spring Boot 3 applications. Provides both SAGA and TCC (Try-Confirm-Cancel) patterns for managing distributed transactions with comprehensive persistence, recovery, and observability features.
 
 ## Key Features
