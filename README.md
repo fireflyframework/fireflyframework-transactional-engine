@@ -1,388 +1,129 @@
-# Firefly Transactional Engine
+# Firefly Framework - Transactional Engine
 
 [![CI](https://github.com/fireflyframework/fireflyframework-transactional-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/fireflyframework/fireflyframework-transactional-engine/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green.svg)](https://spring.io/projects/spring-boot)
 
-A high-performance, reactive distributed transaction engine for Spring Boot 3 applications. Provides both SAGA and TCC (Try-Confirm-Cancel) patterns for managing distributed transactions with comprehensive persistence, recovery, and observability features.
+> SAGA and TCC distributed transaction engine with annotation-driven orchestration, compensation, and persistence for reactive microservices.
 
-## Key Features
+---
 
-- **Dual Transaction Patterns**: SAGA (eventual consistency) and TCC (strong consistency)
-- **Pattern Isolation**: Complete infrastructure isolation between SAGA and TCC patterns
-- **Reactive Architecture**: Built on Project Reactor for non-blocking operations
-- **Flexible Persistence**: In-memory by default with optional Redis persistence
-- **Automatic Recovery**: Built-in recovery mechanisms for application restarts
-- **Saga Composition**: Orchestrate multiple sagas into coordinated workflows
-- **Comprehensive Event System**: Built-in observability and external event publishing for both SAGA and TCC patterns
-- **Spring Boot Integration**: Auto-configuration with comprehensive property support
-- **Comprehensive Testing**: 100% test coverage with integration tests
-- **Type-Safe API**: Method reference support with compile-time validation
+## Table of Contents
 
-## Quick Start
+- [Overview](#overview)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
-### Add Dependency
+## Overview
+
+Firefly Framework Transactional Engine provides a production-grade distributed transaction management system implementing both the SAGA and TCC (Try-Confirm/Cancel) patterns. It enables developers to define complex multi-step business transactions using annotations, with automatic compensation handling when steps fail.
+
+The SAGA engine supports annotation-driven step definitions (`@Saga`, `@SagaStep`, `@CompensationSagaStep`), data flow between steps via `@FromStep`, external HTTP call steps, composition-based saga building, and persistence via in-memory or Redis providers. The TCC engine offers similar capabilities with `@Tcc`, `@TccParticipant`, `@TryMethod`, `@ConfirmMethod`, and `@CancelMethod` annotations.
+
+Both engines include observability through Micrometer metrics and OpenTelemetry tracing, health indicators, recovery services for interrupted transactions, and configurable backpressure strategies for high-throughput scenarios.
+
+## Features
+
+- SAGA pattern with `@Saga`, `@SagaStep`, `@CompensationSagaStep` annotations
+- TCC pattern with `@Tcc`, `@TccParticipant`, `@TryMethod`, `@ConfirmMethod`, `@CancelMethod`
+- Data flow between steps via `@FromStep`, `@Input`, `@Variable` annotations
+- External HTTP call steps with `@ExternalSagaStep`
+- Saga/TCC composition builder for programmatic orchestration
+- Saga topology visualization and reporting
+- Persistence providers: in-memory, Redis
+- Transaction recovery service for interrupted sagas
+- Step event publishing for cross-service coordination
+- Configurable compensation error handlers (fail-fast, retry-with-backoff, log-and-continue)
+- Backpressure strategies: adaptive, batched, circuit-breaker
+- Micrometer metrics and health indicators
+- Compilation-time saga validation
+- `@EnableTransactionalEngine` annotation for easy activation
+
+## Requirements
+
+- Java 21+
+- Spring Boot 3.x
+- Maven 3.9+
+- Redis (optional, for distributed saga persistence)
+
+## Installation
 
 ```xml
 <dependency>
     <groupId>org.fireflyframework</groupId>
-    <artifactId>lib-transactional-engine</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>fireflyframework-transactional-engine</artifactId>
+    <version>26.01.01</version>
 </dependency>
 ```
 
-### Enable the Engine
+## Quick Start
 
 ```java
-@SpringBootApplication
-@EnableTransactionalEngine
-public class Application {
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
-}
-```
+import org.fireflyframework.transactional.saga.annotations.*;
 
-### Define a SAGA
-
-```java
+@Saga(name = "create-order")
 @Component
-@Saga(name = "order-processing")
-public class OrderProcessingSaga {
-    
-    @SagaStep(id = "validate-payment")
-    public Mono<PaymentResult> validatePayment(@Input("orderId") String orderId) {
-        return paymentService.validate(orderId);
+public class CreateOrderSaga {
+
+    @SagaStep(order = 1, name = "reserve-inventory")
+    public Mono<ReservationResult> reserveInventory(@Input OrderRequest request) {
+        return inventoryService.reserve(request);
     }
-    
-    @SagaStep(id = "reserve-inventory", 
-              dependsOn = "validate-payment",
-              compensate = "releaseInventory")
-    public Mono<ReservationResult> reserveInventory(
-            @FromStep("validate-payment") PaymentResult payment) {
-        return inventoryService.reserve(payment.getItems());
+
+    @CompensationSagaStep(compensates = "reserve-inventory")
+    public Mono<Void> cancelReservation(@FromStep("reserve-inventory") ReservationResult result) {
+        return inventoryService.cancel(result.getReservationId());
     }
-    
-    public Mono<Void> releaseInventory(
+
+    @SagaStep(order = 2, name = "process-payment")
+    public Mono<PaymentResult> processPayment(
+            @Input OrderRequest request,
             @FromStep("reserve-inventory") ReservationResult reservation) {
-        return inventoryService.release(reservation.getReservationId());
-    }
-}
-```
-
-### Execute SAGA
-
-```java
-@RestController
-public class OrderController {
-    
-    @Autowired
-    private SagaEngine sagaEngine;
-    
-    @PostMapping("/orders")
-    public Mono<SagaResult> createOrder(@RequestBody CreateOrderRequest request) {
-        return sagaEngine.execute("order-processing", 
-            StepInputs.of("orderId", request.getOrderId()));
-    }
-}
-```
-
-## Transaction Patterns
-
-### SAGA Pattern
-
-**Best for**: Long-running transactions, eventual consistency, microservices orchestration
-
-The SAGA pattern implements distributed transactions through a sequence of local transactions with compensating actions:
-
-```java
-@Saga(name = "payment-processing")
-public class PaymentSaga {
-
-    @SagaStep(id = "charge", compensate = "refund")
-    public Mono<PaymentResult> processPayment(OrderRequest order) {
-        return paymentService.charge(order.getAmount());
-    }
-
-    public Mono<Void> refund(@FromStep("charge") PaymentResult payment) {
-        return paymentService.refund(payment.getTransactionId());
-    }
-}
-```
-
-**Characteristics**:
-- ✅ Forward execution with compensation on failure
-- ✅ Eventual consistency
-- ✅ Simpler implementation
-- ✅ Better for long-running transactions
-
-### TCC Pattern
-
-**Best for**: Strong consistency requirements, resource reservation, financial transactions
-
-The TCC pattern implements distributed transactions through resource reservation:
-
-```java
-@Tcc(name = "OrderPayment")
-public class OrderPaymentTcc {
-
-    @TccParticipant(id = "payment", order = 1)
-    public static class PaymentParticipant {
-
-        @TryMethod
-        public Mono<ReservationId> reservePayment(PaymentRequest request) {
-            return paymentService.reserveAmount(request.getAmount());
-        }
-
-        @ConfirmMethod
-        public Mono<Void> confirmPayment(@FromTry ReservationId id) {
-            return paymentService.captureReservation(id);
-        }
-
-        @CancelMethod
-        public Mono<Void> cancelPayment(@FromTry ReservationId id) {
-            return paymentService.releaseReservation(id);
-        }
-    }
-}
-```
-
-**Characteristics**:
-- ✅ Two-phase commit (Try → Confirm/Cancel)
-- ✅ Strong consistency guarantees
-- ✅ Resource reservation and locking
-- ✅ Automatic rollback on failure
-- ✅ TCC-specific annotations (`@FromTry`, `@Header`, `@Input`)
-
-### Execute TCC
-
-```java
-@Service
-public class OrderService {
-
-    @Autowired
-    private TccEngine tccEngine;
-
-    public Mono<OrderResult> processOrder(OrderRequest order) {
-        TccInputs inputs = TccInputs.builder()
-            .forParticipant("payment", order)
-            .build();
-
-        return tccEngine.execute("OrderPayment", inputs)
-            .map(result -> {
-                if (result.isSuccess()) {
-                    return OrderResult.success(result.getTryResult("payment"));
-                } else {
-                    return OrderResult.failure(result.getError());
-                }
-            });
-    }
-}
-```
-
-## Persistence and Recovery
-
-### In-Memory Persistence (Default)
-
-Zero-configuration operation with high performance:
-
-```java
-@SpringBootApplication
-@EnableTransactionalEngine
-public class Application {
-    // In-memory persistence is enabled by default
-    // Perfect for development and testing
-}
-```
-
-### Redis Persistence
-
-Production-ready persistence with automatic recovery:
-
-```yaml
-# application.yml
-firefly:
-  tx:
-    persistence:
-      enabled: true
-      auto-recovery-enabled: true
-      redis:
-        host: localhost
-        port: 6379
-        key-prefix: "firefly:tx:"
-```
-
-### Recovery on Startup
-
-```java
-@Component
-public class RecoveryManager {
-
-    @Autowired
-    private SagaRecoveryService recoveryService;
-
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-        recoveryService.recoverInFlightSagas()
-            .subscribe(result ->
-                log.info("Recovery completed: {} sagas recovered", 
-                    result.getRecovered()));
-    }
-}
-```
-
-## Saga Composition
-
-Orchestrate multiple sagas into coordinated workflows:
-
-```java
-@Service
-public class OrderFulfillmentService {
-
-    @Autowired
-    private SagaCompositor sagaCompositor;
-
-    public Mono<SagaCompositionResult> processOrder(OrderRequest request) {
-        SagaComposition composition = SagaCompositor.compose("order-fulfillment")
-            .compensationPolicy(CompensationPolicy.GROUPED_PARALLEL)
-
-            // Step 1: Process payment
-            .saga("payment-processing")
-                .withId("payment")
-                .withInput("orderId", request.getOrderId())
-                .add()
-
-            // Step 2: Reserve inventory (depends on payment)
-            .saga("inventory-reservation")
-                .withId("inventory")
-                .dependsOn("payment")
-                .withDataFrom("payment", "paymentId")
-                .add()
-
-            // Step 3: Parallel shipping and notifications
-            .saga("shipping-preparation")
-                .withId("shipping")
-                .dependsOn("inventory")
-                .executeInParallelWith("notifications")
-                .add()
-
-            .saga("notification-sending")
-                .withId("notifications")
-                .dependsOn("payment")
-                .optional() // Won't fail composition if it fails
-                .add()
-
-            .build();
-
-        return sagaCompositor.execute(composition, new SagaContext(request.getCorrelationId()));
-    }
-}
-```
-
-### TCC Compositor
-
-The TCC Compositor allows you to orchestrate multiple TCC transactions with dependencies, parallel execution, and data flow between them.
-
-```java
-@Service
-public class OrderFulfillmentService {
-
-    @Autowired
-    private TccCompositor tccCompositor;
-
-    public Mono<TccCompositionResult> processOrder(OrderRequest request) {
-        TccComposition composition = TccCompositor.compose("order-fulfillment")
-            .compensationPolicy(CompensationPolicy.GROUPED_PARALLEL)
-
-            // Step 1: Process payment
-            .tcc("payment-processing")
-                .withId("payment")
-                .withInput("amount", request.getAmount())
-                .withInput("customerId", request.getCustomerId())
-                .add()
-
-            // Step 2: Reserve inventory (depends on payment)
-            .tcc("inventory-reservation")
-                .withId("inventory")
-                .dependsOn("payment")
-                .withInput("productId", request.getProductId())
-                .withInput("quantity", request.getQuantity())
-                .withDataFrom("payment", "payment-participant", "transactionId", "paymentTransactionId")
-                .add()
-
-            // Step 3: Arrange shipping (depends on inventory)
-            .tcc("shipping-arrangement")
-                .withId("shipping")
-                .dependsOn("inventory")
-                .withInput("address", request.getShippingAddress())
-                .withDataFrom("inventory", "inventory-participant", "reservationId", "inventoryReservationId")
-                .add()
-
-            // Step 4: Send notification (optional, runs in parallel with shipping)
-            .tcc("notification-service")
-                .withId("notification")
-                .executeInParallelWith("shipping")
-                .withInput("customerId", request.getCustomerId())
-                .withInput("orderId", request.getOrderId())
-                .optional() // Won't fail composition if it fails
-                .add()
-
-            .build();
-
-        return tccCompositor.execute(composition, new TccContext(request.getCorrelationId()));
+        return paymentService.charge(request, reservation);
     }
 }
 ```
 
 ## Configuration
 
-### Basic Configuration
-
 ```yaml
 firefly:
-  tx:
+  transactional-engine:
     saga:
-      compensation-policy: STRICT_SEQUENTIAL
-      auto-optimization-enabled: true
-      default-timeout: PT5M
-    tcc:
-      default-timeout: PT30S
-      auto-recovery-enabled: true
-```
-
-### Persistence Configuration
-
-```yaml
-firefly:
-  tx:
-    persistence:
-      enabled: true
-      auto-recovery-enabled: true
-      max-saga-age: PT24H
-      cleanup-interval: PT1H
+      persistence:
+        type: redis  # in-memory, redis
       redis:
         host: localhost
         port: 6379
-        database: 0
-        key-prefix: "firefly:tx:"
-        key-ttl: PT24H
+      backpressure:
+        strategy: adaptive
+    tcc:
+      timeout: 30s
 ```
-
-## Examples
-
-- [SAGA Composition Example](examples/saga-composition-example/) - Complete order fulfillment workflow
-- [TCC E-commerce Example](examples/tcc-ecommerce-order/) - Payment, inventory, and shipping coordination
 
 ## Documentation
 
-- [Architecture Guide](docs/ARCHITECTURE.md) - System design and components
-- [SAGA Pattern Guide](docs/SAGA_GUIDE.md) - Comprehensive SAGA documentation
-- [TCC Pattern Guide](docs/TCC_GUIDE.md) - Complete TCC documentation
-- [Configuration Reference](docs/CONFIGURATION.md) - All configuration options
-- [API Reference](docs/API_REFERENCE.md) - Complete API documentation
+Additional documentation is available in the [docs/](docs/) directory:
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Api Reference](docs/API_REFERENCE.md)
+- [Saga Guide](docs/SAGA_GUIDE.md)
+- [Tcc Guide](docs/TCC_GUIDE.md)
+
+## Contributing
+
+Contributions are welcome. Please read the [CONTRIBUTING.md](CONTRIBUTING.md) guide for details on our code of conduct, development process, and how to submit pull requests.
 
 ## License
 
-Licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Copyright 2024-2026 Firefly Software Solutions Inc.
 
----
-
-**Firefly Software Solutions Inc** - Enterprise-grade reactive framework for mission-critical systems
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
