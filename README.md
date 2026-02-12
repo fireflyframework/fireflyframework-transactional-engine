@@ -59,7 +59,7 @@ Both engines include observability through Micrometer metrics and OpenTelemetry 
 <dependency>
     <groupId>org.fireflyframework</groupId>
     <artifactId>fireflyframework-transactional-engine</artifactId>
-    <version>26.02.02</version>
+    <version>26.02.03</version>
 </dependency>
 ```
 
