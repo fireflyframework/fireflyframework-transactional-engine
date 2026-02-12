@@ -8,12 +8,12 @@
     <parent>
         <groupId>org.fireflyframework</groupId>
         <artifactId>fireflyframework-parent</artifactId>
-        <version>26.02.03</version>
+        <version>26.02.04</version>
         <relativePath/>
     </parent>
 
     <artifactId>fireflyframework-transactional-engine</artifactId>
-    <version>26.02.03</version>
+    <version>26.02.04</version>
     <packaging>jar</packaging>
 
     <name>Firefly Framework - Transactional Engine</name>
