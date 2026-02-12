@@ -17,17 +17,16 @@
 
 package org.fireflyframework.transactional.shared.annotations;
 
-import org.fireflyframework.transactional.saga.config.SagaPersistenceAutoConfiguration;
-import org.fireflyframework.transactional.saga.config.SagaRedisAutoConfiguration;
-import org.fireflyframework.transactional.shared.config.TransactionalEngineConfiguration;
-import org.springframework.context.annotation.Import;
-
 import java.lang.annotation.*;
 
 /**
  * Enables the Transactional Engine (Saga orchestrator) components in a Spring application.
  * <p>
- * Imports {@link org.fireflyframework.transactional.config.TransactionalEngineConfiguration} that wires:
+ * The auto-configuration classes are registered via
+ * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}.
+ * This annotation serves as a marker only.
+ * <p>
+ * Components wired by auto-configuration:
  * - {@code SagaRegistry}: scans for @Saga beans and indexes steps
  * - {@code SagaEngine}: the in-memory orchestrator
  * - {@code SagaEvents}: default implementation {@code SagaLoggerEvents} (override by declaring your own bean)
@@ -38,6 +37,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Import({TransactionalEngineConfiguration.class, SagaPersistenceAutoConfiguration.class, SagaRedisAutoConfiguration.class})
 public @interface EnableTransactionalEngine {
 }
