@@ -16,7 +16,9 @@
 
 package org.fireflyframework.transactional.shared.observability;
 
-import io.micrometer.core.instrument.*;
+import org.fireflyframework.observability.metrics.FireflyMetricsSupport;
+import io.micrometer.core.instrument.MeterRegistry;
+
 import java.time.Duration;
 
 /**
@@ -24,158 +26,214 @@ import java.time.Duration;
  * <p>
  * This implementation publishes counters, timers, and distribution summaries
  * for transactional operations across different patterns (SAGA, TCC, etc.).
+ * <p>
+ * All metrics use the Firefly naming convention ({@code firefly.transactional.*}).
  */
-public class MicrometerTransactionalObserver implements GenericTransactionalObserver {
+public class MicrometerTransactionalObserver extends FireflyMetricsSupport implements GenericTransactionalObserver {
 
-    private final MeterRegistry registry;
     private final TransactionalMetricsCollector metricsCollector;
 
     public MicrometerTransactionalObserver(MeterRegistry registry, TransactionalMetricsCollector metricsCollector) {
-        this.registry = registry;
+        super(registry, "transactional");
         this.metricsCollector = metricsCollector;
     }
-    
+
     @Override
     public void onTransactionStarted(String transactionType, String transactionName, String correlationId) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName)
-        );
-        registry.counter("transaction.started", tags).increment();
+        counter("transaction.started",
+                "transaction.type", transactionType.toLowerCase(),
+                "transaction.name", transactionName)
+                .increment();
         metricsCollector.recordTransactionStarted(transactionType, transactionName, correlationId);
     }
-    
+
     @Override
     public void onTransactionCompleted(String transactionType, String transactionName, String correlationId, boolean success, long durationMs) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("outcome", success ? "success" : "failure")
-        );
-        registry.counter("transaction.completed", tags).increment();
+        String outcome = success ? "success" : "failure";
+
+        counter("transaction.completed",
+                "transaction.type", transactionType.toLowerCase(),
+                "transaction.name", transactionName,
+                "outcome", outcome)
+                .increment();
 
         if (durationMs > 0) {
-            registry.timer("transaction.duration", tags).record(Duration.ofMillis(durationMs));
+            timer("transaction.duration",
+                    "transaction.type", transactionType.toLowerCase(),
+                    "transaction.name", transactionName,
+                    "outcome", outcome)
+                    .record(Duration.ofMillis(durationMs));
         }
 
         metricsCollector.recordTransactionCompleted(transactionType, transactionName, correlationId, success, durationMs);
     }
-    
+
     @Override
     public void onStepStarted(String transactionType, String transactionName, String correlationId, String stepId) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId)
-        );
-        registry.counter("step.started", tags).increment();
+        counter("step.started",
+                "transaction.type", transactionType.toLowerCase(),
+                "transaction.name", transactionName,
+                "step.id", stepId)
+                .increment();
         metricsCollector.recordStepStarted(transactionType, transactionName, stepId);
     }
-    
+
     @Override
     public void onStepSuccess(String transactionType, String transactionName, String correlationId, String stepId, int attempts, long durationMs) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId),
-            Tag.of("outcome", "success")
-        );
-        registry.counter("step.completed", tags).increment();
-        
+        String txType = transactionType.toLowerCase();
+
+        counter("step.completed",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "success")
+                .increment();
+
         if (durationMs > 0) {
-            registry.timer("step.duration", tags).record(Duration.ofMillis(durationMs));
+            timer("step.duration",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "success")
+                    .record(Duration.ofMillis(durationMs));
         }
-        
+
         if (attempts > 1) {
-            registry.counter("step.retries", tags).increment(attempts - 1);
+            counter("step.retries",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "success")
+                    .increment(attempts - 1);
         }
-        
-        DistributionSummary.builder("step.attempts")
-                .baseUnit("attempts")
-                .tags(tags)
-                .register(registry)
+
+        distributionSummary("step.attempts",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "success")
                 .record(attempts);
 
         metricsCollector.recordStepCompleted(transactionType, transactionName, stepId, attempts);
     }
-    
+
     @Override
     public void onStepFailure(String transactionType, String transactionName, String correlationId, String stepId, int attempts, long durationMs, Throwable error) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId),
-            Tag.of("outcome", "failure"),
-            Tag.of("error.type", error.getClass().getSimpleName())
-        );
-        registry.counter("step.completed", tags).increment();
-        
+        String txType = transactionType.toLowerCase();
+        String errorType = error.getClass().getSimpleName();
+
+        counter("step.completed",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "failure",
+                "error.type", errorType)
+                .increment();
+
         if (durationMs > 0) {
-            registry.timer("step.duration", tags).record(Duration.ofMillis(durationMs));
+            timer("step.duration",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "failure",
+                    "error.type", errorType)
+                    .record(Duration.ofMillis(durationMs));
         }
-        
+
         if (attempts > 1) {
-            registry.counter("step.retries", tags).increment(attempts - 1);
+            counter("step.retries",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "failure",
+                    "error.type", errorType)
+                    .increment(attempts - 1);
         }
-        
-        DistributionSummary.builder("step.attempts")
-                .baseUnit("attempts")
-                .tags(tags)
-                .register(registry)
+
+        distributionSummary("step.attempts",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "failure",
+                "error.type", errorType)
                 .record(attempts);
 
         metricsCollector.recordStepFailed(transactionType, transactionName, stepId, attempts);
     }
-    
+
     @Override
     public void onCompensationStarted(String transactionType, String transactionName, String correlationId, String stepId) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId)
-        );
-        registry.counter("compensation.started", tags).increment();
+        counter("compensation.started",
+                "transaction.type", transactionType.toLowerCase(),
+                "transaction.name", transactionName,
+                "step.id", stepId)
+                .increment();
         metricsCollector.recordCompensationStarted(transactionType, transactionName, stepId);
     }
-    
+
     @Override
     public void onCompensationSuccess(String transactionType, String transactionName, String correlationId, String stepId, int attempts, long durationMs) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId),
-            Tag.of("outcome", "success")
-        );
-        registry.counter("compensation.completed", tags).increment();
-        
+        String txType = transactionType.toLowerCase();
+
+        counter("compensation.completed",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "success")
+                .increment();
+
         if (durationMs > 0) {
-            registry.timer("compensation.duration", tags).record(Duration.ofMillis(durationMs));
+            timer("compensation.duration",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "success")
+                    .record(Duration.ofMillis(durationMs));
         }
-        
+
         if (attempts > 1) {
-            registry.counter("compensation.retries", tags).increment(attempts - 1);
+            counter("compensation.retries",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "success")
+                    .increment(attempts - 1);
         }
 
         metricsCollector.recordCompensationCompleted(transactionType, transactionName, stepId, true);
     }
-    
+
     @Override
     public void onCompensationFailure(String transactionType, String transactionName, String correlationId, String stepId, int attempts, long durationMs, Throwable error) {
-        Tags tags = Tags.of(
-            Tag.of("transaction.type", transactionType.toLowerCase()),
-            Tag.of("transaction.name", transactionName),
-            Tag.of("step.id", stepId),
-            Tag.of("outcome", "failure"),
-            Tag.of("error.type", error.getClass().getSimpleName())
-        );
-        registry.counter("compensation.completed", tags).increment();
-        
+        String txType = transactionType.toLowerCase();
+        String errorType = error.getClass().getSimpleName();
+
+        counter("compensation.completed",
+                "transaction.type", txType,
+                "transaction.name", transactionName,
+                "step.id", stepId,
+                "outcome", "failure",
+                "error.type", errorType)
+                .increment();
+
         if (durationMs > 0) {
-            registry.timer("compensation.duration", tags).record(Duration.ofMillis(durationMs));
+            timer("compensation.duration",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "failure",
+                    "error.type", errorType)
+                    .record(Duration.ofMillis(durationMs));
         }
-        
+
         if (attempts > 1) {
-            registry.counter("compensation.retries", tags).increment(attempts - 1);
+            counter("compensation.retries",
+                    "transaction.type", txType,
+                    "transaction.name", transactionName,
+                    "step.id", stepId,
+                    "outcome", "failure",
+                    "error.type", errorType)
+                    .increment(attempts - 1);
         }
 
         metricsCollector.recordCompensationCompleted(transactionType, transactionName, stepId, false);
