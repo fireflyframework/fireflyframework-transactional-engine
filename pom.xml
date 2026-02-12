@@ -8,12 +8,12 @@
     <parent>
         <groupId>org.fireflyframework</groupId>
         <artifactId>fireflyframework-parent</artifactId>
-        <version>26.02.01</version>
+        <version>26.02.02</version>
         <relativePath/>
     </parent>
 
     <artifactId>fireflyframework-transactional-engine</artifactId>
-    <version>26.02.01</version>
+    <version>26.02.02</version>
     <packaging>jar</packaging>
 
     <name>Firefly Framework - Transactional Engine</name>
@@ -59,13 +59,11 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.42</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>1.6.3</version>
         </dependency>
 
         <!-- Jackson -->
@@ -86,7 +84,6 @@
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>
-            <version>3.1.12</version>
         </dependency>
 
         <!-- Reflections -->
@@ -99,12 +96,10 @@
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-spring-boot3</artifactId>
-            <version>2.3.0</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-reactor</artifactId>
-            <version>2.3.0</version>
         </dependency>
 
         <!-- Micrometer / Tracing -->
@@ -123,7 +118,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>
-            <version>4.0.4</version>
             <optional>true</optional>
         </dependency>
 
@@ -141,21 +135,18 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-inline</artifactId>
-            <version>5.2.0</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- Testcontainers for integration testing -->
+        <!-- Testcontainers for integration testing (versions managed by parent via BOM) -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.21.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.19.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
