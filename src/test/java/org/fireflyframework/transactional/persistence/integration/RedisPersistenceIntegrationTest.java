@@ -22,6 +22,8 @@ import org.fireflyframework.transactional.saga.annotations.SagaStep;
 import org.fireflyframework.transactional.saga.core.SagaContext;
 import org.fireflyframework.transactional.saga.engine.SagaEngine;
 import org.fireflyframework.transactional.saga.engine.StepInputs;
+import org.fireflyframework.transactional.saga.config.SagaPersistenceAutoConfiguration;
+import org.fireflyframework.transactional.saga.config.SagaRedisAutoConfiguration;
 import org.fireflyframework.transactional.shared.annotations.EnableTransactionalEngine;
 import org.fireflyframework.transactional.shared.core.StepStatus;
 import org.fireflyframework.transactional.saga.persistence.SagaExecutionState;
@@ -34,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
@@ -101,6 +104,7 @@ class RedisPersistenceIntegrationTest {
 
     @Configuration
     @EnableTransactionalEngine
+    @Import({SagaPersistenceAutoConfiguration.class, SagaRedisAutoConfiguration.class})
     static class TestConfig {
 
         @Bean
