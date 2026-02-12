@@ -76,14 +76,11 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
-        <!-- Logging -->
+        <!-- Observability (metrics, tracing, health, structured logging) -->
         <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
+            <groupId>org.fireflyframework</groupId>
+            <artifactId>fireflyframework-observability</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Reflections -->
@@ -102,15 +99,10 @@
             <artifactId>resilience4j-reactor</artifactId>
         </dependency>
 
-        <!-- Micrometer / Tracing -->
+        <!-- Micrometer / Tracing (optional registries/bridges - observability provides core) -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
             <optional>true</optional>
         </dependency>
 

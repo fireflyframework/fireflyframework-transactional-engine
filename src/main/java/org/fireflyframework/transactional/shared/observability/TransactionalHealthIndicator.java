@@ -16,8 +16,8 @@
 
 package org.fireflyframework.transactional.shared.observability;
 
+import org.fireflyframework.observability.health.FireflyHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
 
 import java.util.Map;
@@ -25,81 +25,76 @@ import java.util.Map;
 /**
  * Spring Boot Actuator health indicator for transactional systems.
  * <p>
+ * Extends {@link FireflyHealthIndicator} for consistent health reporting.
  * Provides health status based on transaction execution metrics,
  * success rates, and system performance indicators across all patterns.
  */
-public class TransactionalHealthIndicator implements HealthIndicator {
+public class TransactionalHealthIndicator extends FireflyHealthIndicator {
 
     private final TransactionalMetricsCollector metricsCollector;
     private final TransactionalHealthProperties properties;
 
-    public TransactionalHealthIndicator(TransactionalMetricsCollector metricsCollector, 
-                                      TransactionalHealthProperties properties) {
+    public TransactionalHealthIndicator(TransactionalMetricsCollector metricsCollector,
+                                        TransactionalHealthProperties properties) {
+        super("transactional");
         this.metricsCollector = metricsCollector;
         this.properties = properties;
     }
 
     @Override
-    public Health health() {
+    protected void doHealthCheck(Health.Builder builder) throws Exception {
         try {
             OverallMetrics metrics = metricsCollector.getOverallMetrics();
-            
-            Health.Builder builder = new Health.Builder();
-            
+
             // Check overall success rate
             double successRate = metrics.getOverallSuccessRate();
             double stepSuccessRate = metrics.getOverallStepSuccessRate();
             double compensationSuccessRate = metrics.getOverallCompensationSuccessRate();
-            
+
             // Determine health status
             Status status = determineStatus(successRate, stepSuccessRate, compensationSuccessRate);
             builder.status(status);
-            
+
             // Add detailed metrics
-            builder.withDetail("overallSuccessRate", String.format("%.2f%%", successRate * 100))
-                   .withDetail("stepSuccessRate", String.format("%.2f%%", stepSuccessRate * 100))
-                   .withDetail("compensationSuccessRate", String.format("%.2f%%", compensationSuccessRate * 100))
-                   .withDetail("totalTransactions", metrics.getTotalTransactionsStarted())
-                   .withDetail("totalSteps", metrics.getTotalStepsStarted())
-                   .withDetail("totalCompensations", metrics.getTotalCompensationsStarted())
-                   .withDetail("averageExecutionTime", String.format("%.2fms", metrics.getOverallAverageExecutionTime()))
-                   .withDetail("activeTransactionTypes", metrics.getActiveTransactionTypes());
-            
+            builder.withDetail("overall.success.rate", String.format("%.2f%%", successRate * 100))
+                   .withDetail("step.success.rate", String.format("%.2f%%", stepSuccessRate * 100))
+                   .withDetail("compensation.success.rate", String.format("%.2f%%", compensationSuccessRate * 100))
+                   .withDetail("total.transactions", metrics.getTotalTransactionsStarted())
+                   .withDetail("total.steps", metrics.getTotalStepsStarted())
+                   .withDetail("total.compensations", metrics.getTotalCompensationsStarted())
+                   .withDetail("average.execution.time", String.format("%.2fms", metrics.getOverallAverageExecutionTime()))
+                   .withDetail("active.transaction.types", metrics.getActiveTransactionTypes());
+
             // Add per-type metrics
             metrics.getMetricsByType().forEach((type, typeMetrics) -> {
-                builder.withDetail(type.toLowerCase() + "Metrics", Map.of(
-                    "successRate", String.format("%.2f%%", typeMetrics.getSuccessRate() * 100),
+                builder.withDetail(type.toLowerCase() + ".metrics", Map.of(
+                    "success.rate", String.format("%.2f%%", typeMetrics.getSuccessRate() * 100),
                     "transactions", typeMetrics.getTransactionsStarted(),
                     "steps", typeMetrics.getStepsStarted(),
                     "compensations", typeMetrics.getCompensationsStarted()
                 ));
             });
-            
-            return builder.build();
-            
+
         } catch (Exception e) {
-            return Health.down()
+            builder.down()
                     .withDetail("error", e.getMessage())
-                    .withDetail("errorType", e.getClass().getSimpleName())
-                    .build();
+                    .withDetail("error.type", e.getClass().getSimpleName());
         }
     }
 
     private Status determineStatus(double successRate, double stepSuccessRate, double compensationSuccessRate) {
-        // If any critical rate is below threshold, system is DOWN
         if (successRate < properties.getCriticalSuccessRateThreshold() ||
             stepSuccessRate < properties.getCriticalSuccessRateThreshold() ||
             compensationSuccessRate < properties.getCriticalSuccessRateThreshold()) {
             return Status.DOWN;
         }
-        
-        // If any rate is below warning threshold, system is degraded
+
         if (successRate < properties.getWarningSuccessRateThreshold() ||
             stepSuccessRate < properties.getWarningSuccessRateThreshold() ||
             compensationSuccessRate < properties.getWarningSuccessRateThreshold()) {
             return new Status("DEGRADED");
         }
-        
+
         return Status.UP;
     }
 
@@ -109,19 +104,19 @@ public class TransactionalHealthIndicator implements HealthIndicator {
     public static class TransactionalHealthProperties {
         private double warningSuccessRateThreshold = 0.95; // 95%
         private double criticalSuccessRateThreshold = 0.85; // 85%
-        
+
         public double getWarningSuccessRateThreshold() {
             return warningSuccessRateThreshold;
         }
-        
+
         public void setWarningSuccessRateThreshold(double warningSuccessRateThreshold) {
             this.warningSuccessRateThreshold = warningSuccessRateThreshold;
         }
-        
+
         public double getCriticalSuccessRateThreshold() {
             return criticalSuccessRateThreshold;
         }
-        
+
         public void setCriticalSuccessRateThreshold(double criticalSuccessRateThreshold) {
             this.criticalSuccessRateThreshold = criticalSuccessRateThreshold;
         }
