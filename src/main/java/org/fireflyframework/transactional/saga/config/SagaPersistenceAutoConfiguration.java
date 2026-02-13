@@ -33,7 +33,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 
 /**
  * Auto-configuration for Saga persistence capabilities.
@@ -64,7 +63,6 @@ public class SagaPersistenceAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    @Primary
     public ObjectMapper sagaObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.findAndRegisterModules(); // This will register JSR310 module for Java 8 time types
