@@ -257,10 +257,20 @@ public class TransactionalEngineConfiguration {
 
     @Bean
     @Primary
-    public TccEvents tccEventsComposite(LoggingTransactionalObserver logger,
+    public TccEvents tccEventsComposite(ApplicationContext applicationContext,
+                                        LoggingTransactionalObserver logger,
                                         ObjectProvider<MicrometerTransactionalObserver> micrometer,
                                         ObjectProvider<GenericTransactionalObserver> tracing) {
         List<TccEvents> sinks = new ArrayList<>();
+
+        // Add all other TccEvents beans first (including test beans)
+        // Exclude the composite itself to avoid circular dependency
+        Map<String, TccEvents> allEvents = applicationContext.getBeansOfType(TccEvents.class);
+        for (Map.Entry<String, TccEvents> entry : allEvents.entrySet()) {
+            if (!"tccEventsComposite".equals(entry.getKey())) {
+                sinks.add(entry.getValue());
+            }
+        }
 
         // Add logging adapter
         sinks.add(new TccToGenericObserverAdapter(logger));

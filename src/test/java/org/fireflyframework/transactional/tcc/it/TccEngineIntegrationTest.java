@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -67,7 +66,6 @@ class TccEngineIntegrationTest {
         }
         
         @Bean
-        @Primary
         public TccEvents testEvents() {
             return new TestEvents();
         }
