@@ -144,12 +144,6 @@ public class TransactionalEngineConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TccEvents tccEvents(LoggingTransactionalObserver loggingObserver) {
-        return new TccToGenericObserverAdapter(loggingObserver);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     public TccEventPublisher tccEventPublisher() {
         Logger log = LoggerFactory.getLogger(TransactionalEngineConfiguration.class);
         log.info("No custom TccEventPublisher found. Using NoOpTccEventPublisher - events will be discarded");
@@ -263,7 +257,6 @@ public class TransactionalEngineConfiguration {
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean(TccEvents.class)
     public TccEvents tccEventsComposite(LoggingTransactionalObserver logger,
                                         ObjectProvider<MicrometerTransactionalObserver> micrometer,
                                         ObjectProvider<GenericTransactionalObserver> tracing) {
@@ -333,6 +326,7 @@ public class TransactionalEngineConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public WebClient.Builder webClientBuilder() {
         return WebClient.builder();
     }
