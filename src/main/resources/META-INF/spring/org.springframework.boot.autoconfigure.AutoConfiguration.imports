@@ -1,3 +1,4 @@
+org.fireflyframework.transactional.shared.config.TransactionalEngineConfiguration
 org.fireflyframework.transactional.saga.config.SagaPersistenceAutoConfiguration
 org.fireflyframework.transactional.saga.config.SagaRedisAutoConfiguration
 org.fireflyframework.transactional.saga.config.SagaCompositionAutoConfiguration

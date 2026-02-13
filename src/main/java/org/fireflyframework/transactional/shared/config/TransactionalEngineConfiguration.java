@@ -158,6 +158,12 @@ public class TransactionalEngineConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public SagaPersistenceProvider sagaPersistenceProvider() {
+        return new org.fireflyframework.transactional.saga.persistence.impl.InMemorySagaPersistenceProvider();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public TccPersistenceProvider tccPersistenceProvider() {
         return new InMemoryTccPersistenceProvider();
     }
