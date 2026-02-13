@@ -16,6 +16,7 @@
 
 package org.fireflyframework.transactional.saga.validation;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.fireflyframework.transactional.saga.registry.SagaDefinition;
 import org.fireflyframework.transactional.saga.registry.StepDefinition;
 
@@ -266,7 +267,7 @@ public class SagaValidator {
     /**
      * Exception thrown when circular dependencies are detected.
      */
-    public static class CircularDependencyException extends Exception {
+    public static class CircularDependencyException extends FireflyException {
         public CircularDependencyException(String message) {
             super(message);
         }

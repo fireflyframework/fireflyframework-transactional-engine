@@ -17,6 +17,7 @@
 
 package org.fireflyframework.transactional.saga.engine;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.fireflyframework.transactional.saga.core.SagaContext;
 import org.fireflyframework.transactional.saga.registry.SagaDefinition;
 import org.fireflyframework.transactional.saga.registry.StepDefinition;
@@ -304,7 +305,7 @@ final class SagaCompensator {
     /**
      * Exception thrown when compensation fails and the error handler decides to fail the saga.
      */
-    public static class CompensationFailedException extends RuntimeException {
+    public static class CompensationFailedException extends FireflyException {
         public CompensationFailedException(String message, Throwable cause) {
             super(message, cause);
         }

@@ -16,6 +16,8 @@
 
 package org.fireflyframework.transactional.saga.composition;
 
+import org.fireflyframework.kernel.exception.FireflyException;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
  * during composition building, including helpful suggestions for
  * resolving the problems.
  */
-public class CompositionValidationException extends RuntimeException {
+public class CompositionValidationException extends FireflyException {
     
     private final String compositionName;
     private final List<ValidationIssue> validationIssues;
