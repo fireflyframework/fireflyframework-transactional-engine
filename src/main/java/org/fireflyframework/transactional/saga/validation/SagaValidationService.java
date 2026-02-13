@@ -16,6 +16,7 @@
 
 package org.fireflyframework.transactional.saga.validation;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.fireflyframework.transactional.saga.registry.SagaDefinition;
 import org.fireflyframework.transactional.saga.registry.SagaRegistry;
 import org.fireflyframework.transactional.saga.registry.StepDefinition;
@@ -284,11 +285,11 @@ public class SagaValidationService {
     /**
      * Exception thrown when saga validation fails.
      */
-    public static class SagaValidationException extends Exception {
+    public static class SagaValidationException extends FireflyException {
         public SagaValidationException(String message) {
             super(message);
         }
-        
+
         public SagaValidationException(String message, Throwable cause) {
             super(message, cause);
         }

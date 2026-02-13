@@ -16,6 +16,7 @@
 
 package org.fireflyframework.transactional.shared.engine.backpressure;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -254,7 +255,7 @@ public class CircuitBreakerBackpressureStrategy implements BackpressureStrategy 
     /**
      * Exception thrown when circuit breaker is open.
      */
-    public static class CircuitBreakerException extends RuntimeException {
+    public static class CircuitBreakerException extends FireflyException {
         public CircuitBreakerException(String message) {
             super(message);
         }

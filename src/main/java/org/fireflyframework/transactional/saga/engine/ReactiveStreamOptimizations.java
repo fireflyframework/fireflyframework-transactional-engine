@@ -17,6 +17,7 @@
 
 package org.fireflyframework.transactional.saga.engine;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.fireflyframework.transactional.saga.core.SagaContext;
 import org.fireflyframework.transactional.saga.registry.SagaDefinition;
 import org.fireflyframework.transactional.saga.registry.StepDefinition;
@@ -319,7 +320,7 @@ public class ReactiveStreamOptimizations {
         Mono<String> executeStep(String stepId);
     }
     
-    public static class CircuitBreakerException extends RuntimeException {
+    public static class CircuitBreakerException extends FireflyException {
         public CircuitBreakerException(String message) {
             super(message);
         }

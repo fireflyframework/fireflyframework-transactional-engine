@@ -16,6 +16,7 @@
 
 package org.fireflyframework.transactional.saga.persistence.serialization;
 
+import org.fireflyframework.kernel.exception.FireflyException;
 import org.fireflyframework.transactional.saga.persistence.SagaExecutionState;
 
 /**
@@ -80,7 +81,7 @@ public interface SagaStateSerializer {
     /**
      * Exception thrown when serialization or deserialization fails.
      */
-    class SerializationException extends Exception {
+    class SerializationException extends FireflyException {
         public SerializationException(String message) {
             super(message);
         }
